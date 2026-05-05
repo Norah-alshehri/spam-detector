@@ -19,7 +19,7 @@ from sklearn.linear_model import LogisticRegression
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
-# --- 1. CLEANING ALGORITHM (Verbatim from your provided code)[cite: 1] ---
+# --- 1. CLEANING ALGORITHM  ---
 def clean_text(text):
     text = str(text).lower()                      # lower case[cite: 1]
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)   # remove hyperlinks[cite: 1]
@@ -58,7 +58,7 @@ def load_and_train():
 # --- 3. STREAMLIT INTERFACE ---
 st.set_page_config(page_title="Email Spam Detector", page_icon="✉️")
 
-# Sidebar with Project and Group Details[cite: 1]
+# Sidebar with Project and Group Details
 st.sidebar.title("MIS 542 Project")
 st.sidebar.subheader("Advanced Business Analytics")
 st.sidebar.markdown("""
@@ -70,7 +70,7 @@ st.sidebar.markdown("""
 """)
 
 st.title("Email Spam or Valid Classifier")
-st.write("This tool uses Logistic Regression to classify emails based on your group project algorithm.")
+st.write("This tool uses Logistic Regression to classify emails based on the group project algorithm.")
 
 # Initialize the model
 tfidf, model = load_and_train()
