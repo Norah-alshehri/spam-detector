@@ -13,74 +13,88 @@ import re
 import nltk
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
 
-# Download necessary data
+# Download required NLTK data[cite: 1]
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
-# --- 1. CLEANING FUNCTION (From your model) ---
+# --- 1. CLEANING ALGORITHM (Verbatim from your provided code)[cite: 1] ---
 def clean_text(text):
-    text = str(text).lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = str(text).lower()                      # lower case[cite: 1]
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)   # remove hyperlinks[cite: 1]
+    text = re.sub(r'[^a-zA-Z\s]', '', text)      # remove special characters and numbers[cite: 1]
+    text = re.sub(r'\s+', ' ', text).strip()     # remove extra whitespaces[cite: 1]
     words = text.split()
-    words = [word for word in words if word not in stop_words]
+    words = [word for word in words if word not in stop_words]   # remove stopwords[cite: 1]
     return " ".join(words)
 
-# --- 2. MODEL INITIALIZATION ---
-# Since we need to run without a backend file, we train a quick classifier on load
-# using the logic established in your notebook.
+# --- 2. DATA PROCESSING AND MODEL TRAINING ---
 @st.cache_resource
-def load_model():
-    # Load your dataset (Ensure 'Project file.csv' is in the same folder)
-    df = pd.read_csv('Project file.csv')
+def load_and_train():
+    # Load the specific dataset used in your project[cite: 1]
+    df = pd.read_csv('Project file.csv') 
+    
+    # Keep only needed columns as per your code[cite: 1]
     df = df[['class', 'message']].dropna()
+    
+    # Apply your cleaning algorithm[cite: 1]
     df['clean_message'] = df['message'].apply(clean_text)
+    
+    # Map labels (valid: 0, spam: 1)[cite: 1]
     df['label'] = df['class'].map({'valid': 0, 'spam': 1})
-
-    # TF-IDF
+    
+    # TF-IDF transformation with max_features=3000[cite: 1]
     tfidf = TfidfVectorizer(max_features=3000)
     X = tfidf.fit_transform(df['clean_message'])
     y = df['label']
-
-    # Simple Classifier (Matching your Analytics course standards)
-    model = MultinomialNB()
+    
+    # Train Logistic Regression as the final chosen model
+    model = LogisticRegression()
     model.fit(X, y)
+    
     return tfidf, model
 
-# --- 3. STREAMLIT UI ---
-st.set_page_config(page_title="Email Spam Classifier", page_icon="📧")
+# --- 3. STREAMLIT INTERFACE ---
+st.set_page_config(page_title="Email Spam Detector", page_icon="✉️")
 
-st.title("📧 Email Spam Detector")
-st.markdown("Enter an email message below to check if it is **Spam** or **Valid**.")
+# Sidebar with Project and Group Details[cite: 1]
+st.sidebar.title("MIS 542 Project")
+st.sidebar.subheader("Advanced Business Analytics")
+st.sidebar.markdown("""
+**Group Members:**
+* Latifa Aljaafri (G202508290)
+* Fatima Althwaini (G202508170)
+* Lujain Aldayel (G202508310)
+* Nora Alshehri (G202508470)
+""")
 
-tfidf, model = load_model()
+st.title("Email Spam or Valid Classifier")
+st.write("This tool uses Logistic Regression to classify emails based on your group project algorithm.")
 
-# User Input
-user_input = st.text_area("Email Content:", placeholder="Type or paste email text here...", height=200)
+# Initialize the model
+tfidf, model = load_and_train()
 
-if st.button("Analyze Email"):
-    if user_input.strip() == "":
-        st.warning("Please enter some text first.")
-    else:
-        # Process input
-        cleaned = clean_text(user_input)
-        vectorized = tfidf.transform([cleaned])
+# User input area
+email_input = st.text_area("Paste the email content here:", height=250)
 
-        # Predict
-        prediction = model.predict(vectorized)
-        probability = model.predict_proba(vectorized)
-
-        # Display Result
-        st.divider()
-        if prediction[0] == 1:
+if st.button("Classify Email"):
+    if email_input:
+        # Pre-process using the project's exact logic[cite: 1]
+        cleaned_input = clean_text(email_input)
+        vectorized_input = tfidf.transform([cleaned_input])
+        
+        # Make prediction and get confidence
+        prediction = model.predict(vectorized_input)[0]
+        probs = model.predict_proba(vectorized_input)[0]
+        confidence = probs[prediction] * 100
+        
+        # Display the results
+        if prediction == 1:
             st.error(f"### Result: SPAM")
-            st.write(f"Confidence: {probability[0][1]:.2%}")
+            st.write(f"**Confidence Level:** {confidence:.2f}%")
         else:
-            st.success(f"### Result: VALID (Ham)")
-            st.write(f"Confidence: {probability[0][0]:.2%}")
-
-# Footer
-st.sidebar.info("Model built for MIS 542: Advanced Business Analytics.")
+            st.success(f"### Result: VALID")
+            st.write(f"**Confidence Level:** {confidence:.2f}%")
+    else:
+        st.warning("Please enter email text to analyze.")
